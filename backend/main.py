@@ -1,4 +1,5 @@
 # backend/main.py
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -16,7 +17,7 @@ from . import auth, crud, models, schemas
 from .database import SessionLocal, engine
 
 models.Base.metadata.create_all(bind=engine)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("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")
 
 app = FastAPI()
 
