@@ -1,0 +1,62 @@
+/* General App Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f7f8fa;
+    color: #333;
+    margin: 0;
+}
+.container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+h1, h2, h3 { color: #1c2a4e; }
+button, .button {
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+    display: inline-block;
+}
+button:hover, .button:hover {
+    transform: translateY(-2px);
+}
+.button-primary { background-color: #007bff; color: white; }
+.logout-button { background-color: #f1f3f5; color: #495057; }
+.scenario-list { display: grid; gap: 1.5rem; }
+.scenario-card {
+    padding: 1.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+.scenario-card p { color: #6c757d; margin-bottom: 1.5rem; }
+.conversation-log {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    height: 300px;
+    overflow-y: auto;
+}
+.feedback-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: #e9f7ef;
+    border-left: 4px solid #28a745;
+    border-radius: 4px;
+}
