@@ -1,7 +1,7 @@
-// frontend/src/App.js (УПРОЩЕННАЯ ВЕРСИЯ)
+// frontend/src/App.js (ФИНАЛЬНАЯ УПРОЩЕННАЯ ВЕРСИЯ)
 
 import React, { useState, useEffect } from 'react';
-import './App.css'; // Подключаем стили
+import './App.css'; 
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -9,7 +9,6 @@ function App() {
     const [scenarios, setScenarios] = useState([]);
     const [currentScenario, setCurrentScenario] = useState(null);
 
-    // Загружаем сценарии при запуске приложения
     useEffect(() => {
         const fetchScenarios = async () => {
             try {
@@ -24,11 +23,9 @@ function App() {
     }, []);
 
     if (currentScenario) {
-        // Если выбран сценарий, показываем экран симуляции
         return <SimulationPage scenario={currentScenario} onBack={() => setCurrentScenario(null)} />;
     }
 
-    // Если сценарий не выбран, показываем список сценариев
     return (
         <div className="container">
             <header className="app-header">
@@ -49,8 +46,6 @@ function App() {
     );
 }
 
-
-// Компонент симуляции, теперь находится прямо здесь
 function SimulationPage({ scenario, onBack }) {
     const [conversation, setConversation] = useState([{ speaker: 'AI', text: 'Здравствуйте! Слушаю вас.' }]);
     const [userInput, setUserInput] = useState('');
@@ -60,11 +55,9 @@ function SimulationPage({ scenario, onBack }) {
     const handleUserResponse = (e) => {
         e.preventDefault();
         if (!userInput.trim()) return;
-
         const updatedConversation = [...conversation, { speaker: 'User', text: userInput }];
         setConversation(updatedConversation);
         setUserInput('');
-
         setTimeout(() => {
             setConversation(prev => [...prev, { speaker: 'AI', text: 'Интересно, расскажите подробнее.' }]);
         }, 1000);
@@ -93,44 +86,28 @@ function SimulationPage({ scenario, onBack }) {
                 <h1>Тренировка: {scenario.title}</h1>
                 <button onClick={onBack} className="logout-button">Вернуться к сценариям</button>
             </header>
-            
             <div className="conversation-log">
-                {conversation.map((line, index) => (
-                    <p key={index}><strong>{line.speaker}:</strong> {line.text}</p>
-                ))}
+                {conversation.map((line, index) => <p key={index}><strong>{line.speaker}:</strong> {line.text}</p>)}
             </div>
-
             {!feedback && (
-                <form onSubmit={handleUserResponse}>
+                <form onSubmit={handleUserResponse} style={{marginTop: '1rem'}}>
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                        <input
-                            type="text"
-                            value={userInput}
-                            onChange={(e) => setUserInput(e.target.value)}
-                            placeholder="Ваш ответ..."
-                            style={{ flexGrow: 1, padding: '12px', border: '1px solid #ced4da', borderRadius: '8px' }}
-                            disabled={isAnalyzing}
-                        />
+                        <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Ваш ответ..." style={{ flexGrow: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc'}} disabled={isAnalyzing} />
                         <button type="submit" className="button-primary" disabled={isAnalyzing}>Отправить</button>
                     </div>
                 </form>
             )}
-
             {!feedback && (
                 <button onClick={handleEndSimulation} disabled={isAnalyzing} style={{ marginTop: '1rem' }}>
                     {isAnalyzing ? 'Анализирую...' : 'Завершить и проанализировать'}
                 </button>
             )}
-
             {feedback && (
                 <div className="feedback-section">
                     <h2>Результаты анализа</h2>
                     <p><strong>Цель достигнута:</strong> {feedback.goal_achieved ? '✅ Да' : '❌ Нет'}</p>
                     <p><strong>Использованные ключевые слова:</strong></p>
-                    <ul>
-                        {feedback.keywords_usage?.map((kw, i) => <li key={i}>{kw}</li>)}
-                    </ul>
-                    <p><strong>Комментарий по достижению цели:</strong> {feedback.feedback_on_goal}</p>
+                    <ul>{feedback.keywords_usage?.map((kw, i) => <li key={i}>{kw}</li>)}</ul>
                     <p><strong>Общая оценка:</strong> {feedback.overall_assessment}</p>
                 </div>
             )}
