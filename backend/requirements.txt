@@ -1,9 +1,7 @@
+# backend/requirements.txt (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ)
+
 fastapi
 uvicorn
+gunicorn
 openai
 python-dotenv
-gunicorn
-SQLAlchemy
-passlib[bcrypt]
-python-jose[cryptography]
-python-multipart
