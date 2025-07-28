@@ -1,11 +1,12 @@
-// frontend/src/App.js (ФИНАЛЬНАЯ УПРОЩЕННАЯ ВЕРСИЯ)
+// frontend/src/App.js (ENGLISH VERSION WITH ANALYSIS)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css'; 
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function App() {
+    // ... (код компонента App остается без изменений) ...
     const [scenarios, setScenarios] = useState([]);
     const [currentScenario, setCurrentScenario] = useState(null);
 
@@ -29,42 +30,83 @@ function App() {
     return (
         <div className="container">
             <header className="app-header">
-                <h1>Выберите сценарий для тренировки</h1>
+                <h1>Choose a Scenario to Practice</h1>
             </header>
             <div className="scenario-list">
                 {scenarios.length > 0 ? scenarios.map(scenario => (
                     <div key={scenario.id} className="scenario-card">
                         <h3>{scenario.title}</h3>
-                        <p><strong>Цель:</strong> {scenario.goal}</p>
+                        <p><strong>Goal:</strong> {scenario.goal}</p>
                         <button onClick={() => setCurrentScenario(scenario)} className="button button-primary">
-                            Начать тренировку
+                            Start Training
                         </button>
                     </div>
-                )) : <p>Загрузка сценариев...</p>}
+                )) : <p>Loading scenarios...</p>}
             </div>
         </div>
     );
 }
 
+// The simulation component now has analysis logic
 function SimulationPage({ scenario, onBack }) {
-    const [conversation, setConversation] = useState([{ speaker: 'AI', text: 'Здравствуйте! Слушаю вас.' }]);
-    const [userInput, setUserInput] = useState('');
-    const [feedback, setFeedback] = useState(null);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [conversation, setConversation] = useState([{ speaker: 'AI', text: 'Hello! Press the record button and start speaking.' }]);
+    const [isRecording, setIsRecording] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [feedback, setFeedback] = useState(null); // State for feedback
+    const [isAnalyzing, setIsAnalyzing] = useState(false); // State for analysis process
+    const recognitionRef = useRef(null);
 
-    const handleUserResponse = (e) => {
-        e.preventDefault();
-        if (!userInput.trim()) return;
-        const updatedConversation = [...conversation, { speaker: 'User', text: userInput }];
-        setConversation(updatedConversation);
-        setUserInput('');
-        setTimeout(() => {
-            setConversation(prev => [...prev, { speaker: 'AI', text: 'Интересно, расскажите подробнее.' }]);
-        }, 1000);
+    const speakAIResponse = (text) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
     };
 
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('Your browser does not support speech recognition. Please try Google Chrome.');
+            return;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.onresult = (event) => {
+            const userText = event.results[0][0].transcript;
+            handleUserResponse(userText);
+        };
+        recognition.onend = () => setIsRecording(false);
+        recognitionRef.current = recognition;
+        speakAIResponse('Hello! Press the record button and start speaking.');
+    }, []);
+
+
+    const handleUserResponse = async (userText) => {
+        if (isProcessing) return;
+        setIsProcessing(true);
+        const updatedConversation = [...conversation, { speaker: 'User', text: userText }];
+        setConversation(updatedConversation);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/respond`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversation: updatedConversation, scenario_id: scenario.id }),
+            });
+            const data = await response.json();
+            setConversation(prev => [...prev, { speaker: 'AI', text: data.ai_response }]);
+            speakAIResponse(data.ai_response);
+        } catch (error) {
+            const errorText = 'Sorry, there was a connection issue.';
+            setConversation(prev => [...prev, { speaker: 'AI', text: errorText }]);
+            speakAIResponse(errorText);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+    
     const handleEndSimulation = async () => {
         setIsAnalyzing(true);
+        speakAIResponse("Analyzing your performance. One moment.");
         try {
             const response = await fetch(`${API_BASE_URL}/api/analyze`, {
                 method: 'POST',
@@ -74,41 +116,51 @@ function SimulationPage({ scenario, onBack }) {
             const result = await response.json();
             setFeedback(result);
         } catch (error) {
-            alert(`Ошибка анализа: ${error.message}`);
+            alert(`Analysis Error: ${error.message}`);
         } finally {
             setIsAnalyzing(false);
+        }
+    };
+
+    const toggleRecording = () => {
+        if (isRecording) {
+            recognitionRef.current.stop();
+        } else {
+            recognitionRef.current.start();
+            setIsRecording(true);
         }
     };
 
     return (
         <div className="container">
             <header className="app-header">
-                <h1>Тренировка: {scenario.title}</h1>
-                <button onClick={onBack} className="logout-button">Вернуться к сценариям</button>
+                <h1>Training: {scenario.title}</h1>
+                <button onClick={onBack} className="logout-button">Back to Scenarios</button>
             </header>
+            
             <div className="conversation-log">
                 {conversation.map((line, index) => <p key={index}><strong>{line.speaker}:</strong> {line.text}</p>)}
             </div>
+            
             {!feedback && (
-                <form onSubmit={handleUserResponse} style={{marginTop: '1rem'}}>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Ваш ответ..." style={{ flexGrow: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc'}} disabled={isAnalyzing} />
-                        <button type="submit" className="button-primary" disabled={isAnalyzing}>Отправить</button>
-                    </div>
-                </form>
+                 <div style={{marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center'}}>
+                    <button onClick={toggleRecording} className="button-primary" disabled={isProcessing || isAnalyzing} style={{backgroundColor: isRecording ? '#dc3545' : '#007bff'}}>
+                        {isRecording ? 'Stop Recording' : '🎤 Speak'}
+                    </button>
+                    <button onClick={handleEndSimulation} disabled={isProcessing || isAnalyzing || isRecording}>
+                        {isAnalyzing ? 'Analyzing...' : 'End & Analyze'}
+                    </button>
+                    {isProcessing && <p>AI is thinking...</p>}
+                </div>
             )}
-            {!feedback && (
-                <button onClick={handleEndSimulation} disabled={isAnalyzing} style={{ marginTop: '1rem' }}>
-                    {isAnalyzing ? 'Анализирую...' : 'Завершить и проанализировать'}
-                </button>
-            )}
+
             {feedback && (
                 <div className="feedback-section">
-                    <h2>Результаты анализа</h2>
-                    <p><strong>Цель достигнута:</strong> {feedback.goal_achieved ? '✅ Да' : '❌ Нет'}</p>
-                    <p><strong>Использованные ключевые слова:</strong></p>
-                    <ul>{feedback.keywords_usage?.map((kw, i) => <li key={i}>{kw}</li>)}</ul>
-                    <p><strong>Общая оценка:</strong> {feedback.overall_assessment}</p>
+                    <h2>Performance Review</h2>
+                    <p><strong>Goal Achieved:</strong> {feedback.goal_achieved ? '✅ Yes' : '❌ No'}</p>
+                    <p><strong>Clarity Score:</strong> {feedback.clarity_score}/10</p>
+                    <p><strong>Persuasion Score:</strong> {feedback.persuasion_score}/10</p>
+                    <p><strong>Coach's Assessment:</strong> {feedback.overall_assessment}</p>
                 </div>
             )}
         </div>
