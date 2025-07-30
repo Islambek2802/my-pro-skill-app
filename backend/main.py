@@ -9,7 +9,7 @@ import os
 import json
 
 # --- Настройка OpenAI API ключа ---
-openai.api_key = os.getenv("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")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # --- Создание приложения ---
 app = FastAPI()
