@@ -1,6 +1,6 @@
-# backend/main.py (Версия для живого диалога с OpenAI)
+# backend/main.py (ВЕРСИЯ С ГЕНЕРАЦИЕЙ ГОЛОСА)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -44,6 +44,7 @@ HARDCODED_SCENARIOS = [
 class ConversationLine(BaseModel): speaker: str; text: str
 class RespondRequest(BaseModel): conversation: List[ConversationLine]; scenario_id: int
 class AnalyzeRequest(BaseModel): conversation: List[ConversationLine]; scenario_id: int
+class SynthesizeRequest(BaseModel): text: str
 
 # === МАРШРУТЫ API ===
 @app.get("/api/scenarios")
@@ -52,41 +53,40 @@ def get_scenarios():
 
 @app.post("/api/respond")
 def respond(request: RespondRequest):
+    # ... (эта функция остается без изменений) ...
     scenario = next((s for s in HARDCODED_SCENARIOS if s["id"] == request.scenario_id), None)
     if not scenario: raise HTTPException(status_code=404, detail="Scenario not found")
-
     conversation_history = "\n".join([f"{line.speaker}: {line.text}" for line in request.conversation])
-    
-    prompt = f"""
-    You are an AI assistant playing the role of a customer in a sales simulation.
-    Your role: {scenario['customer_persona']}
-    Your goal: maintain a natural dialogue and respond to the salesperson (User).
-    Dialogue history:
-    {conversation_history}
-    AI:
-    """
-    
-    # --- ВОТ ЭТА ЧАСТЬ ОТВЕЧАЕТ ЗА "ЖИВОЙ" ДИАЛОГ ---
-    # Она берет историю диалога, создает инструкцию для OpenAI и получает ответ
+    prompt = f"You are an AI assistant playing the role of a customer: {scenario['customer_persona']}. Maintain a natural dialogue and respond to the salesperson (User). Dialogue history:\n{conversation_history}\nAI:"
     try:
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini", # Быстрая и недорогая модель
-            messages=[{"role": "system", "content": prompt}],
-            temperature=0.7,
-            max_tokens=100
-        )
+        response = openai.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "system", "content": prompt}], temperature=0.7, max_tokens=100)
         ai_response = response.choices[0].message.content.strip()
     except Exception as e:
         print(f"OPENAI API ERROR: {e}")
-        ai_response = "Sorry, I'm having a technical issue. Could you repeat that?"
-    
+        ai_response = "Sorry, I'm having a technical issue."
     return {"ai_response": ai_response}
+
+# --- НОВЫЙ МАРШРУТ ДЛЯ ГЕНЕРАЦИИ ГОЛОСА ---
+@app.post("/api/synthesize-speech")
+def synthesize_speech(request: SynthesizeRequest):
+    """Превращает текст в аудиофайл с помощью OpenAI TTS."""
+    try:
+        response = openai.audio.speech.create(
+            model="tts-1",      # Стандартная, быстрая модель
+            voice="nova",       # 'nova' - один из самых естественных женских голосов. Другие варианты: 'alloy', 'echo', 'fable', 'onyx', 'shimmer'
+            input=request.text
+        )
+        # Возвращаем аудиофайл напрямую
+        return Response(content=response.content, media_type="audio/mpeg")
+    except Exception as e:
+        print(f"OpenAI TTS Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to synthesize speech")
 
 @app.post("/api/analyze")
 def analyze_simulation(request: AnalyzeRequest):
     # ... (код для анализа остается таким же) ...
-    pass # Мы его пока не трогаем
+    pass
 
 @app.get("/")
 def read_root():
-    return {"message": "API with live OpenAI dialogue is running"}
+    return {"message": "API with Voice Synthesis is running"}
